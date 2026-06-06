@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>My Video Vault</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e0f13; --surface:#181a20; --surface-2:#20232b; --border:#2a2e38;
+    --text:#eef0f4; --dim:#9aa0ab; --accent:#ff5247; --accent-2:#ff7a52;
+    --accent-soft:rgba(255,82,71,.14); --ok:#37c98b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:
+      radial-gradient(900px 500px at 85% -5%, #1b1d26 0%, transparent 55%),
+      radial-gradient(700px 500px at 0% 100%, #17191f 0%, transparent 55%),
+      var(--bg);
+    color:var(--text);font-family:"Manrope",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+  }
+  .hidden{display:none !important}
+  button{font-family:inherit;cursor:pointer}
+  input,select{font-family:inherit}
+
+  /* LOGIN */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login-card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);
+    border-radius:20px;padding:clamp(28px,6vw,44px);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .brand .logo,.brandline .logo{width:42px;height:42px;border-radius:12px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center}
+  .brand .logo svg{width:20px;height:20px;fill:#fff}
+  .brand h1{font-family:"Sora",sans-serif;font-weight:800;font-size:1.3rem;letter-spacing:-.02em}
+  .login-sub{color:var(--dim);font-size:.9rem;margin:4px 0 28px}
+  .field{margin-bottom:16px}
+  .field label{display:block;font-size:.74rem;color:var(--dim);margin-bottom:7px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+  .field input{width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:11px;padding:13px 15px;font-size:.95rem;transition:border-color .2s}
+  .field input:focus{outline:none;border-color:var(--accent)}
+  .btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;
+    border-radius:11px;padding:14px;font-size:.98rem;font-weight:700;transition:transform .15s,box-shadow .2s;margin-top:6px}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 12px 30px var(--accent-soft)}
+  .login-error{color:var(--accent);font-size:.85rem;margin-top:14px;min-height:1.1em;text-align:center}
+  .config-warn{margin-top:22px;font-size:.76rem;line-height:1.6;color:var(--dim);
+    background:var(--surface-2);border:1px dashed var(--border);border-radius:10px;padding:12px 14px}
+
+  /* APP */
+  #appScreen{max-width:1240px;margin:0 auto;padding:clamp(16px,3vw,28px)}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:22px;flex-wrap:wrap}
+  .topbar .count{color:var(--dim);font-size:.85rem;margin-left:4px}
+  .ghost{background:var(--surface);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:9px 15px;font-size:.85rem;font-weight:600;transition:all .2s}
+  .ghost:hover{border-color:var(--accent);color:var(--accent)}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  h2.brandline{display:flex;align-items:center;gap:10px;font-family:"Sora",sans-serif;font-size:1.15rem;font-weight:800}
+  h2.brandline .logo{width:34px;height:34px;border-radius:9px}
+  h2.brandline .logo svg{width:17px;height:17px;fill:#fff}
+
+  .addbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .addbar input{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);color:var(--text);
+    border-radius:12px;padding:14px 16px;font-size:.95rem;transition:border-color .2s}
+  .addbar input:focus{outline:none;border-color:var(--accent)}
+  .addbar .add-btn{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;border:none;
+    border-radius:12px;padding:0 24px;font-weight:700;font-size:.95rem;transition:transform .15s;display:flex;align-items:center;gap:8px}
+  .addbar .add-btn:hover{transform:translateY(-1px)}
+  .addbar .add-btn:disabled{opacity:.55;cursor:wait;transform:none}
+
+  /* playlist chips */
+  .chips{display:flex;gap:9px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px;scrollbar-width:thin}
+  .chip{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);color:var(--dim);
+    border-radius:999px;padding:8px 16px;font-size:.85rem;font-weight:600;white-space:nowrap;transition:all .18s;display:flex;align-items:center;gap:7px}
+  .chip:hover{color:var(--text);border-color:#3a3f4b}
+  .chip.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+  .chip .pcount{font-size:.72rem;opacity:.7}
+  .chip-new{border-style:dashed;color:var(--accent-2)}
+  .chip-del{background:var(--surface);border:1px solid var(--border);color:var(--dim);border-radius:999px;
+    padding:8px 14px;font-size:.82rem;font-weight:600;white-space:nowrap;flex:0 0 auto}
+  .chip-del:hover{border-color:var(--accent);color:var(--accent)}
+
+  .toolbar{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+  .search{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border);color:var(--text);
+    border-radius:10px;padding:10px 14px;font-size:.9rem}
+  .search:focus{outline:none;border-color:var(--accent)}
+  .hint{font-size:.78rem;color:var(--dim)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;
+    transition:transform .2s,border-color .2s,box-shadow .2s;position:relative}
+  .card:hover{transform:translateY(-4px);border-color:#3a3f4b;box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .thumb{position:relative;aspect-ratio:16/9;background:#000;cursor:pointer;overflow:hidden}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s}
+  .card:hover .thumb img{transform:scale(1.05)}
+  .play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.15);opacity:0;transition:opacity .2s}
+  .thumb:hover .play-ov{opacity:1}
+  .play-ov .circle{width:58px;height:58px;border-radius:50%;background:rgba(255,82,71,.92);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  .play-ov .circle svg{width:24px;height:24px;fill:#fff;margin-left:3px}
+  .remove{position:absolute;top:9px;right:9px;width:30px;height:30px;border-radius:8px;background:rgba(14,15,19,.82);
+    border:1px solid var(--border);color:var(--dim);display:flex;align-items:center;justify-content:center;font-size:1rem;line-height:1;
+    opacity:0;transition:opacity .2s,color .2s,background .2s;backdrop-filter:blur(4px)}
+  .card:hover .remove{opacity:1}
+  .remove:hover{color:#fff;background:var(--accent)}
+  .card-body{padding:13px 15px 15px}
+  .card-title{font-weight:600;font-size:.92rem;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+  .card-foot{margin-top:11px;display:flex;align-items:center;gap:8px}
+  .card-foot svg{width:13px;height:13px;fill:var(--dim);flex:0 0 auto}
+  .pl-select{flex:1;background:var(--surface-2);border:1px solid var(--border);color:var(--dim);
+    border-radius:8px;padding:6px 8px;font-size:.78rem;cursor:pointer}
+  .pl-select:focus{outline:none;border-color:var(--accent)}
+
+  .empty{text-align:center;padding:70px 20px;color:var(--dim);border:1px dashed var(--border);border-radius:16px}
+  .empty .big{font-family:"Sora",sans-serif;font-size:1.2rem;color:var(--text);margin-bottom:8px;font-weight:600}
+
+  .overlay{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(6,7,10,.9);backdrop-filter:blur(8px);padding:20px}
+  .overlay.open{display:flex}
+  .player{width:100%;max-width:960px;position:relative}
+  .player .frame{aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden;border:1px solid var(--border)}
+  .player iframe{width:100%;height:100%;border:0}
+  .player-foot{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .player-title{font-family:"Sora",sans-serif;font-size:1.05rem;font-weight:600}
+  .yt-link{color:var(--accent-2);text-decoration:none;font-size:.85rem;font-weight:600;white-space:nowrap}
+  .yt-link:hover{text-decoration:underline}
+  .player-close{position:absolute;top:-46px;right:0;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:1.1rem}
+  .player-close:hover{border-color:var(--accent);color:var(--accent)}
+
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-2);
+    border:1px solid var(--border);color:var(--text);padding:12px 20px;border-radius:12px;font-size:.88rem;opacity:0;pointer-events:none;
+    transition:all .3s;z-index:80;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="brand">
+      <span class="logo"><svg viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></span>
+      <h1>Video Vault</h1>
+    </div>
+    <p class="login-sub">Your private collection of favourite videos.</p>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" placeholder="you@example.com"></div>
+    <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="btn" id="loginBtn">Sign in</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="config-warn hidden" id="configWarn"><b>Setup needed:</b> add your Firebase config to this file.</div>
+  </div>
+</div>
+
+<div id="appScreen" class="hidden">
+  <div class="topbar">
+    <h2 class="brandline">
+      <span class="logo"><svg viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></span>
+      Video Vault <span class="count" id="count"></span>
+    </h2>
+    <div class="actions">
+      <button class="ghost" id="exportBtn">⤓ Backup</button>
+      <button class="ghost" id="importBtn">⤒ Import</button>
+      <input type="file" id="importFile" accept="application/json" class="hidden">
+      <button class="ghost" id="logoutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <div class="addbar">
+    <input id="urlInput" type="url" placeholder="Paste a YouTube link and press Add…">
+    <button class="add-btn" id="addBtn">＋ Add</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="toolbar">
+    <input class="search" id="searchInput" type="text" placeholder="Search your videos…">
+    <span class="hint">Tip: open a playlist, then Add — new videos drop straight into it.</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty hidden" id="empty">
+    <div class="big">No videos here yet</div>
+    Paste a YouTube link above to start building your vault.
+  </div>
+</div>
+
+<div class="overlay" id="player">
+  <div class="player">
+    <button class="player-close" id="playerClose" aria-label="Close">✕</button>
+    <div class="frame"><iframe id="playerFrame" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
+    <div class="player-foot">
+      <div class="player-title" id="playerTitle"></div>
+      <a class="yt-link" id="ytLink" href="#" target="_blank" rel="noopener">Watch on YouTube ↗</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* ============================================================
+   FIREBASE CONFIG
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAMx89_UnaM1Uv2XZeyAKDea3eiI_eHpwc",
+  authDomain: "video-vault-fa3a7.firebaseapp.com",
+  projectId: "video-vault-fa3a7",
+  storageBucket: "video-vault-fa3a7.firebasestorage.app",
+  messagingSenderId: "296197204760",
+  appId: "1:296197204760:web:d91967c07694d57e100c6d"
+};
+/* ============================================================ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const $ = id => document.getElementById(id);
+const configured = !firebaseConfig.apiKey.startsWith("PASTE_");
+
+let app, auth, db;
+let unsubVideos = null, unsubPlaylists = null;
+let videos = [], playlists = [];
+let filter = "all";   // 'all' | 'unsorted' | <playlistId>
+
+if (configured) {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  onAuthStateChanged(auth, user => user ? showApp(user) : showLogin());
+} else {
+  $("configWarn").classList.remove("hidden");
+}
+
+/* ---------- auth ---------- */
+$("loginBtn").addEventListener("click", doLogin);
+$("password").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+
+async function doLogin() {
+  if (!configured) { $("loginError").textContent = "Add your Firebase config first."; return; }
+  $("loginError").textContent = "";
+  try {
+    await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
+  } catch (err) {
+    const map = {
+      "auth/invalid-credential":"Wrong email or password.",
+      "auth/invalid-email":"That email looks invalid.",
+      "auth/user-not-found":"No user with that email.",
+      "auth/wrong-password":"Wrong password.",
+      "auth/too-many-requests":"Too many attempts — try again later."
+    };
+    $("loginError").textContent = map[err.code] || ("Login failed: " + err.code);
+  }
+}
+$("logoutBtn").addEventListener("click", () => signOut(auth));
+
+function showLogin() {
+  if (unsubVideos) unsubVideos(); if (unsubPlaylists) unsubPlaylists();
+  unsubVideos = unsubPlaylists = null;
+  $("appScreen").classList.add("hidden");
+  $("loginScreen").classList.remove("hidden");
+  $("password").value = "";
+}
+function showApp(user) {
+  $("loginScreen").classList.add("hidden");
+  $("appScreen").classList.remove("hidden");
+  subscribe(user.uid);
+}
+
+/* ---------- firestore refs ---------- */
+const uid = () => auth.currentUser.uid;
+const vidCol = u => collection(db, "users", u, "videos");
+const plCol  = u => collection(db, "users", u, "playlists");
+const vidDoc = id => doc(db, "users", uid(), "videos", id);
+const plDoc  = id => doc(db, "users", uid(), "playlists", id);
+
+function subscribe(u) {
+  unsubPlaylists = onSnapshot(query(plCol(u), orderBy("createdAt", "asc")), snap => {
+    playlists = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderChips(); render();
+  }, err => toast("Playlist sync error: " + err.code));
+
+  unsubVideos = onSnapshot(query(vidCol(u), orderBy("createdAt", "desc")), snap => {
+    videos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderChips(); render();
+  }, err => toast("Sync error: " + err.code));
+}
+
+/* ---------- helpers ---------- */
+function extractId(url) {
+  if (!url) return null;
+  const pats = [
+    /youtube\.com\/watch\?(?:.*&)?v=([A-Za-z0-9_-]{11})/,
+    /youtu\.be\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/embed\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/,
+    /youtube\.com\/live\/([A-Za-z0-9_-]{11})/
+  ];
+  for (const p of pats) { const m = url.match(p); if (m) return m[1]; }
+  const bare = url.trim().match(/^[A-Za-z0-9_-]{11}$/);
+  return bare ? bare[0] : null;
+}
+async function fetchTitle(url) {
+  try { const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+    if (r.ok) { const j = await r.json(); if (j.title) return j.title; } } catch (e) {}
+  try { const r = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
+    if (r.ok) { const j = await r.json(); if (j.title) return j.title; } } catch (e) {}
+  return null;
+}
+
+/* ---------- add / remove / move ---------- */
+$("addBtn").addEventListener("click", addVideo);
+$("urlInput").addEventListener("keydown", e => { if (e.key === "Enter") addVideo(); });
+
+async function addVideo() {
+  const url = $("urlInput").value.trim();
+  const vid = extractId(url);
+  if (!vid) { toast("That doesn't look like a YouTube link."); return; }
+  if (videos.some(v => v.videoId === vid)) { toast("Already in your vault."); return; }
+
+  const assignTo = (filter !== "all" && filter !== "unsorted") ? filter : null;
+  $("addBtn").disabled = true;
+  const title = (await fetchTitle(`https://youtu.be/${vid}`)) || "Untitled video";
+  try {
+    await addDoc(vidCol(uid()), { videoId: vid, url: `https://youtu.be/${vid}`, title, playlistId: assignTo, createdAt: serverTimestamp() });
+    $("urlInput").value = ""; toast("Added ✓");
+  } catch (e) { toast("Could not save: " + e.code); }
+  finally { $("addBtn").disabled = false; }
+}
+
+async function removeVideo(id, title) {
+  if (!confirm(`Remove "${title}" from your vault?`)) return;
+  try { await deleteDoc(vidDoc(id)); toast("Removed"); } catch (e) { toast("Could not remove: " + e.code); }
+}
+async function moveVideo(id, playlistId) {
+  try { await updateDoc(vidDoc(id), { playlistId: playlistId || null }); } catch (e) { toast("Could not move: " + e.code); }
+}
+
+/* ---------- playlists ---------- */
+async function newPlaylist() {
+  const name = (prompt("Playlist name:") || "").trim();
+  if (!name) return;
+  try { const ref = await addDoc(plCol(uid()), { name, createdAt: serverTimestamp() }); filter = ref.id; toast("Playlist created"); }
+  catch (e) { toast("Could not create: " + e.code); }
+}
+async function deletePlaylist(id) {
+  const pl = playlists.find(p => p.id === id); if (!pl) return;
+  if (!confirm(`Delete playlist "${pl.name}"? Videos inside it become Unsorted (they are NOT deleted).`)) return;
+  try {
+    const affected = videos.filter(v => v.playlistId === id);
+    for (const v of affected) await updateDoc(vidDoc(v.id), { playlistId: null });
+    await deleteDoc(plDoc(id));
+    filter = "all"; toast("Playlist deleted");
+  } catch (e) { toast("Could not delete: " + e.code); }
+}
+
+/* ---------- render ---------- */
+function countFor(f) {
+  if (f === "all") return videos.length;
+  if (f === "unsorted") return videos.filter(v => !v.playlistId).length;
+  return videos.filter(v => v.playlistId === f).length;
+}
+function renderChips() {
+  const c = $("chips"); c.innerHTML = "";
+  const base = [["all","All"],["unsorted","Unsorted"]];
+  base.forEach(([id,label]) => c.appendChild(makeChip(id,label)));
+  playlists.forEach(p => c.appendChild(makeChip(p.id, p.name)));
+  const add = document.createElement("button");
+  add.className = "chip chip-new"; add.textContent = "＋ New playlist";
+  add.addEventListener("click", newPlaylist); c.appendChild(add);
+  if (filter !== "all" && filter !== "unsorted" && playlists.some(p => p.id === filter)) {
+    const del = document.createElement("button");
+    del.className = "chip-del"; del.textContent = "🗑 Delete this playlist";
+    del.addEventListener("click", () => deletePlaylist(filter)); c.appendChild(del);
+  }
+}
+function makeChip(id, label) {
+  const b = document.createElement("button");
+  b.className = "chip" + (filter === id ? " active" : "");
+  b.innerHTML = `${label} <span class="pcount">${countFor(id)}</span>`;
+  b.addEventListener("click", () => { filter = id; renderChips(); render(); });
+  return b;
+}
+
+function render() {
+  const term = $("searchInput").value.trim().toLowerCase();
+  let list = videos;
+  if (filter === "unsorted") list = list.filter(v => !v.playlistId);
+  else if (filter !== "all") list = list.filter(v => v.playlistId === filter);
+  if (term) list = list.filter(v => (v.title || "").toLowerCase().includes(term));
+
+  $("count").textContent = videos.length ? `· ${videos.length} video${videos.length > 1 ? "s" : ""}` : "";
+  const grid = $("grid"); grid.innerHTML = "";
+
+  if (!list.length) {
+    $("empty").classList.remove("hidden");
+    $("empty").querySelector(".big").textContent = videos.length ? "Nothing here" : "No videos here yet";
+    return;
+  }
+  $("empty").classList.add("hidden");
+
+  list.forEach(v => {
+    const card = document.createElement("div"); card.className = "card";
+
+    const thumb = document.createElement("div"); thumb.className = "thumb";
+    const img = document.createElement("img"); img.loading = "lazy";
+    img.src = `https://img.youtube.com/vi/${v.videoId}/maxresdefault.jpg`;
+    img.onerror = () => { img.onerror = null; img.src = `https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`; };
+    img.alt = v.title || "video"; thumb.appendChild(img);
+    const ov = document.createElement("div"); ov.className = "play-ov";
+    ov.innerHTML = `<span class="circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`;
+    thumb.appendChild(ov);
+    thumb.addEventListener("click", () => playVideo(v));
+
+    const rm = document.createElement("button"); rm.className = "remove"; rm.textContent = "✕"; rm.title = "Remove";
+    rm.addEventListener("click", e => { e.stopPropagation(); removeVideo(v.id, v.title || "this video"); });
+
+    const body = document.createElement("div"); body.className = "card-body";
+    const t = document.createElement("div"); t.className = "card-title"; t.textContent = v.title || "Untitled video";
+
+    const foot = document.createElement("div"); foot.className = "card-foot";
+    foot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+    const sel = document.createElement("select"); sel.className = "pl-select";
+    sel.innerHTML = `<option value="">Unsorted</option>` +
+      playlists.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+    sel.value = v.playlistId || "";
+    sel.addEventListener("click", e => e.stopPropagation());
+    sel.addEventListener("change", () => moveVideo(v.id, sel.value));
+    foot.appendChild(sel);
+
+    body.appendChild(t); body.appendChild(foot);
+    card.appendChild(thumb); card.appendChild(rm); card.appendChild(body);
+    grid.appendChild(card);
+  });
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+$("searchInput").addEventListener("input", render);
+
+/* ---------- player ---------- */
+function playVideo(v) {
+  $("playerFrame").src = `https://www.youtube.com/embed/${v.videoId}?autoplay=1&rel=0`;
+  $("playerTitle").textContent = v.title || "";
+  $("ytLink").href = `https://www.youtube.com/watch?v=${v.videoId}`;
+  $("player").classList.add("open");
+}
+function closePlayer() { $("player").classList.remove("open"); $("playerFrame").src = ""; }
+$("playerClose").addEventListener("click", closePlayer);
+$("player").addEventListener("click", e => { if (e.target === $("player")) closePlayer(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closePlayer(); });
+
+/* ---------- backup ---------- */
+$("exportBtn").addEventListener("click", () => {
+  if (!videos.length) { toast("Nothing to back up yet."); return; }
+  const plName = id => (playlists.find(p => p.id === id) || {}).name || null;
+  const data = videos.map(v => ({ videoId: v.videoId, url: v.url, title: v.title, playlist: plName(v.playlistId) }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "video-vault-backup.json"; a.click();
+  URL.revokeObjectURL(a.href);
+});
+$("importBtn").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", async e => {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const arr = JSON.parse(await file.text());
+    if (!Array.isArray(arr)) throw new Error("bad");
+    let added = 0;
+    for (const item of arr) {
+      const vid = item.videoId || extractId(item.url || "");
+      if (!vid || videos.some(v => v.videoId === vid)) continue;
+      let plId = null;
+      if (item.playlist) {
+        let pl = playlists.find(p => p.name === item.playlist);
+        if (!pl) { const ref = await addDoc(plCol(uid()), { name: item.playlist, createdAt: serverTimestamp() }); plId = ref.id; playlists.push({ id: ref.id, name: item.playlist }); }
+        else plId = pl.id;
+      }
+      await addDoc(vidCol(uid()), { videoId: vid, url: item.url || `https://youtu.be/${vid}`, title: item.title || "Untitled video", playlistId: plId, createdAt: serverTimestamp() });
+      added++;
+    }
+    toast(added ? `Imported ${added} video${added > 1 ? "s" : ""}` : "Nothing new to import");
+  } catch (err) { toast("Import failed — invalid file."); }
+  e.target.value = "";
+});
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600); }
+</script>
+</body>
+</html>
