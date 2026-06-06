@@ -62,6 +62,11 @@
   h2.brandline{display:flex;align-items:center;gap:10px;font-family:"Sora",sans-serif;font-size:1.15rem;font-weight:800}
   h2.brandline .logo{width:34px;height:34px;border-radius:9px}
   h2.brandline .logo svg{width:17px;height:17px;fill:#fff}
+  .role-badge{font-family:"Manrope",sans-serif;font-size:.66rem;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;padding:3px 10px;border-radius:999px;margin-left:4px}
+  .role-badge.owner{background:rgba(55,201,139,.16);color:var(--ok);border:1px solid rgba(55,201,139,.5)}
+  .role-badge.viewer{background:var(--surface-2);color:var(--dim);border:1px solid var(--border)}
+  body.viewer .hint{display:none}
 
   .addbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
   .addbar input{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);color:var(--text);
@@ -157,6 +162,7 @@
     <h2 class="brandline">
       <span class="logo"><svg viewBox="0 0 24 24"><path d="M10 16.5l6-4.5-6-4.5v9zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg></span>
       Video Vault <span class="count" id="count"></span>
+      <span class="role-badge" id="roleBadge"></span>
     </h2>
     <div class="actions">
       <button class="ghost" id="exportBtn">⤓ Backup</button>
@@ -166,7 +172,7 @@
     </div>
   </div>
 
-  <div class="addbar">
+  <div class="addbar" id="addbarWrap">
     <input id="urlInput" type="url" placeholder="Paste a YouTube link and press Add…">
     <button class="add-btn" id="addBtn">＋ Add</button>
   </div>
@@ -225,6 +231,8 @@ let app, auth, db;
 let unsubVideos = null, unsubPlaylists = null;
 let videos = [], playlists = [];
 let filter = "all";   // 'all' | 'unsorted' | <playlistId>
+const OWNER_EMAIL = "srikanthchandra174@gmail.com";
+let isOwner = false;
 
 if (configured) {
   app = initializeApp(firebaseConfig);
@@ -265,17 +273,27 @@ function showLogin() {
   $("password").value = "";
 }
 function showApp(user) {
+  isOwner = (user.email || "").toLowerCase() === OWNER_EMAIL.toLowerCase();
   $("loginScreen").classList.add("hidden");
   $("appScreen").classList.remove("hidden");
+  applyRole();
   subscribe(user.uid);
+}
+function applyRole() {
+  document.body.classList.toggle("viewer", !isOwner);
+  $("addbarWrap").classList.toggle("hidden", !isOwner);
+  $("importBtn").classList.toggle("hidden", !isOwner);
+  const badge = $("roleBadge");
+  badge.textContent = isOwner ? "Owner" : "Viewer · read-only";
+  badge.className = "role-badge " + (isOwner ? "owner" : "viewer");
 }
 
 /* ---------- firestore refs ---------- */
 const uid = () => auth.currentUser.uid;
-const vidCol = u => collection(db, "users", u, "videos");
-const plCol  = u => collection(db, "users", u, "playlists");
-const vidDoc = id => doc(db, "users", uid(), "videos", id);
-const plDoc  = id => doc(db, "users", uid(), "playlists", id);
+const vidCol = () => collection(db, "vault", "main", "videos");
+const plCol  = () => collection(db, "vault", "main", "playlists");
+const vidDoc = id => doc(db, "vault", "main", "videos", id);
+const plDoc  = id => doc(db, "vault", "main", "playlists", id);
 
 function subscribe(u) {
   unsubPlaylists = onSnapshot(query(plCol(u), orderBy("createdAt", "asc")), snap => {
@@ -316,6 +334,7 @@ $("addBtn").addEventListener("click", addVideo);
 $("urlInput").addEventListener("keydown", e => { if (e.key === "Enter") addVideo(); });
 
 async function addVideo() {
+  if (!isOwner) return;
   const url = $("urlInput").value.trim();
   const vid = extractId(url);
   if (!vid) { toast("That doesn't look like a YouTube link."); return; }
@@ -332,21 +351,25 @@ async function addVideo() {
 }
 
 async function removeVideo(id, title) {
+  if (!isOwner) return;
   if (!confirm(`Remove "${title}" from your vault?`)) return;
   try { await deleteDoc(vidDoc(id)); toast("Removed"); } catch (e) { toast("Could not remove: " + e.code); }
 }
 async function moveVideo(id, playlistId) {
+  if (!isOwner) return;
   try { await updateDoc(vidDoc(id), { playlistId: playlistId || null }); } catch (e) { toast("Could not move: " + e.code); }
 }
 
 /* ---------- playlists ---------- */
 async function newPlaylist() {
+  if (!isOwner) return;
   const name = (prompt("Playlist name:") || "").trim();
   if (!name) return;
   try { const ref = await addDoc(plCol(uid()), { name, createdAt: serverTimestamp() }); filter = ref.id; toast("Playlist created"); }
   catch (e) { toast("Could not create: " + e.code); }
 }
 async function deletePlaylist(id) {
+  if (!isOwner) return;
   const pl = playlists.find(p => p.id === id); if (!pl) return;
   if (!confirm(`Delete playlist "${pl.name}"? Videos inside it become Unsorted (they are NOT deleted).`)) return;
   try {
@@ -368,13 +391,15 @@ function renderChips() {
   const base = [["all","All"],["unsorted","Unsorted"]];
   base.forEach(([id,label]) => c.appendChild(makeChip(id,label)));
   playlists.forEach(p => c.appendChild(makeChip(p.id, p.name)));
-  const add = document.createElement("button");
-  add.className = "chip chip-new"; add.textContent = "＋ New playlist";
-  add.addEventListener("click", newPlaylist); c.appendChild(add);
-  if (filter !== "all" && filter !== "unsorted" && playlists.some(p => p.id === filter)) {
-    const del = document.createElement("button");
-    del.className = "chip-del"; del.textContent = "🗑 Delete this playlist";
-    del.addEventListener("click", () => deletePlaylist(filter)); c.appendChild(del);
+  if (isOwner) {
+    const add = document.createElement("button");
+    add.className = "chip chip-new"; add.textContent = "＋ New playlist";
+    add.addEventListener("click", newPlaylist); c.appendChild(add);
+    if (filter !== "all" && filter !== "unsorted" && playlists.some(p => p.id === filter)) {
+      const del = document.createElement("button");
+      del.className = "chip-del"; del.textContent = "🗑 Delete this playlist";
+      del.addEventListener("click", () => deletePlaylist(filter)); c.appendChild(del);
+    }
   }
 }
 function makeChip(id, label) {
@@ -420,19 +445,24 @@ function render() {
 
     const body = document.createElement("div"); body.className = "card-body";
     const t = document.createElement("div"); t.className = "card-title"; t.textContent = v.title || "Untitled video";
+    body.appendChild(t);
 
-    const foot = document.createElement("div"); foot.className = "card-foot";
-    foot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
-    const sel = document.createElement("select"); sel.className = "pl-select";
-    sel.innerHTML = `<option value="">Unsorted</option>` +
-      playlists.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
-    sel.value = v.playlistId || "";
-    sel.addEventListener("click", e => e.stopPropagation());
-    sel.addEventListener("change", () => moveVideo(v.id, sel.value));
-    foot.appendChild(sel);
+    if (isOwner) {
+      const foot = document.createElement("div"); foot.className = "card-foot";
+      foot.innerHTML = `<svg viewBox="0 0 24 24"><path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+      const sel = document.createElement("select"); sel.className = "pl-select";
+      sel.innerHTML = `<option value="">Unsorted</option>` +
+        playlists.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join("");
+      sel.value = v.playlistId || "";
+      sel.addEventListener("click", e => e.stopPropagation());
+      sel.addEventListener("change", () => moveVideo(v.id, sel.value));
+      foot.appendChild(sel);
+      body.appendChild(foot);
+    }
 
-    body.appendChild(t); body.appendChild(foot);
-    card.appendChild(thumb); card.appendChild(rm); card.appendChild(body);
+    card.appendChild(thumb);
+    if (isOwner) card.appendChild(rm);
+    card.appendChild(body);
     grid.appendChild(card);
   });
 }
@@ -463,6 +493,7 @@ $("exportBtn").addEventListener("click", () => {
 });
 $("importBtn").addEventListener("click", () => $("importFile").click());
 $("importFile").addEventListener("change", async e => {
+  if (!isOwner) return;
   const file = e.target.files[0]; if (!file) return;
   try {
     const arr = JSON.parse(await file.text());
