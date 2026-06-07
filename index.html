@@ -101,6 +101,9 @@
   .card:hover{transform:translateY(-4px);border-color:#3a3f4b;box-shadow:0 18px 40px rgba(0,0,0,.4)}
   .thumb{position:relative;aspect-ratio:16/9;background:#000;cursor:pointer;overflow:hidden}
   .thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .35s}
+  .no-thumb{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:var(--surface-2);color:var(--dim);font-size:.82rem;font-weight:600;text-align:center;padding:14px}
+  .no-thumb span{font-size:.7rem;font-weight:400;opacity:.8}
   .card:hover .thumb img{transform:scale(1.05)}
   .play-ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.15);opacity:0;transition:opacity .2s}
   .thumb:hover .play-ov{opacity:1}
@@ -431,10 +434,23 @@ function render() {
     const card = document.createElement("div"); card.className = "card";
 
     const thumb = document.createElement("div"); thumb.className = "thumb";
-    const img = document.createElement("img"); img.loading = "lazy";
-    img.src = `https://img.youtube.com/vi/${v.videoId}/maxresdefault.jpg`;
-    img.onerror = () => { img.onerror = null; img.src = `https://img.youtube.com/vi/${v.videoId}/mqdefault.jpg`; };
-    img.alt = v.title || "video"; thumb.appendChild(img);
+    const img = document.createElement("img"); img.loading = "lazy"; img.alt = v.title || "video";
+    const variants = ["maxresdefault", "hqdefault", "mqdefault"];
+    let vi = 0;
+    const tryNext = () => {
+      if (vi >= variants.length) { showNoThumb(); return; }
+      img.src = `https://img.youtube.com/vi/${v.videoId}/${variants[vi]}.jpg`;
+    };
+    const showNoThumb = () => {
+      img.onerror = null; img.onload = null; img.style.display = "none";
+      const ph = document.createElement("div"); ph.className = "no-thumb";
+      ph.innerHTML = `Thumbnail unavailable<span>Is the video Private? Set it to Unlisted.</span>`;
+      thumb.insertBefore(ph, thumb.firstChild);
+    };
+    img.onerror = () => { vi++; tryNext(); };
+    img.onload = () => { if (img.naturalWidth <= 120) { vi++; tryNext(); } }; // 120px = YouTube's gray "no image" placeholder
+    tryNext();
+    thumb.appendChild(img);
     const ov = document.createElement("div"); ov.className = "play-ov";
     ov.innerHTML = `<span class="circle"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>`;
     thumb.appendChild(ov);
