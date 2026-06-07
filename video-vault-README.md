@@ -2,10 +2,13 @@
 
 A personal video library web app: save favourite YouTube videos, organise them into playlists, and play them from any device. A **zero-build static front-end** on GitHub Pages, backed by **Firebase** (Authentication + Firestore) for real login, cloud storage, and live sync.
 
-**🔗 Live demo:** `https://<your-username>.github.io/video-vault/`
+**🔗 Live demo:** `https://srikanthchandra174.github.io/video-vault/`
 
-<!-- Add a screenshot here once deployed -->
-<!-- ![Screenshot](screenshot.png) -->
+<img width="957" height="440" alt="image" src="https://github.com/user-attachments/assets/ebd969b1-0183-40b8-86b2-a80f89b18904" />
+
+<img width="309" height="218" alt="image" src="https://github.com/user-attachments/assets/4fafda4b-d7c9-4f24-9623-c9ddc43bcd48" />
+
+
 
 ---
 
