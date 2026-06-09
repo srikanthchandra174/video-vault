@@ -200,7 +200,6 @@
     <div class="frame"><iframe id="playerFrame" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>
     <div class="player-foot">
       <div class="player-title" id="playerTitle"></div>
-      <a class="yt-link" id="ytLink" href="#" target="_blank" rel="noopener">Watch on YouTube ↗</a>
     </div>
   </div>
 </div>
@@ -490,7 +489,6 @@ $("searchInput").addEventListener("input", render);
 function playVideo(v) {
   $("playerFrame").src = `https://www.youtube.com/embed/${v.videoId}?autoplay=1&rel=0`;
   $("playerTitle").textContent = v.title || "";
-  $("ytLink").href = `https://www.youtube.com/watch?v=${v.videoId}`;
   $("player").classList.add("open");
 }
 function closePlayer() { $("player").classList.remove("open"); $("playerFrame").src = ""; }
